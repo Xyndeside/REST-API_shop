@@ -5,6 +5,8 @@ const isAdmin = require('../middleware/isAdminMiddleware');
 
 router.post('/', orderController.createOrder);
 router.get('/', orderController.getMyOrders);
+router.post('/from-cart', orderController.createOrderFromCart);
+router.get('/all', isAdmin, orderController.getAllActiveOrders);
 router.delete('/:id', isAdmin, orderController.deleteOrderById);
 router.put('/:id', isAdmin, orderController.changeOrderStatus);
 

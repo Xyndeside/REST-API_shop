@@ -1,4 +1,5 @@
 const Order = require('../models/order');
+const Cart = require('../models/cart');
 
 class OrderController {
 	async createOrder(req, res) {
@@ -80,6 +81,67 @@ class OrderController {
 		} catch (error) {
 			console.error(error);
 			return res.status(500).json({ message: 'Error changing order status' });
+		}
+	}
+
+	async createOrderFromCart(req, res) {
+		try {
+			const userId = req.user.id;
+			const { shippingAddress, paymentMethod } = req.body;
+
+			const cart = await Cart.findOne({ user: userId });
+			if (!cart || cart.items.length === 0) {
+				return res.status(400).json({ message: 'Cart is empty' });
+			}
+
+			if (!shippingAddress || !paymentMethod) {
+				return res.status(400).json({ message: 'Missing required fields' });
+			}
+
+			const orderItems = cart.items.map(item => ({
+				product: item.product._id,
+				quantity: item.quantity,
+			}));
+
+			const order = await Order.create({
+				user: userId,
+				items: orderItems,
+				shippingAddress,
+				paymentMethod,
+				totalPrice: cart.totalPrice,
+				status: 'pending',
+			});
+
+			if (!order) {
+				return res.status(500).json({ message: 'Order creation failed' });
+			}
+
+			cart.items = [];
+			cart.totalPrice = 0;
+			await cart.save();
+
+			return res.status(200).json({ message: 'Order created successfully', order });
+		} catch (error) {
+			console.error(error);
+			return res.status(500).json({ message: 'Error creating order from cart' });
+		}
+	}
+
+	async getAllActiveOrders(req, res) {
+		try {
+			const status = req.query.status;
+			const orders = await Order.find({ status })
+				.populate('user', 'name email')
+				.populate('items.product');
+
+			if (!orders || orders.length === 0) {
+				return res.status(404).json({ message: 'No active orders found' });
+			}
+
+			return res.status(200).json(orders);
+		} catch (error) {
+			console.error(error);
+			return res.status(500).json({ message: 'Error fetching active orders' });
 		}
 	}
 }
