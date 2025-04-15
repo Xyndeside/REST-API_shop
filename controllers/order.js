@@ -127,7 +127,7 @@ class OrderController {
 		}
 	}
 
-	async getAllActiveOrders(req, res) {
+	async getAllOrdersByParam(req, res) {
 		try {
 			const status = req.query.status;
 			const orders = await Order.find({ status })
